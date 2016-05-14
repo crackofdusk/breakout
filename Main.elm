@@ -31,6 +31,7 @@ type alias Model =
 
 
 -- TODO: floats?
+-- TODO: use Vec2
 type alias Speed =
     { x : Int
     , y : Int
@@ -77,6 +78,7 @@ init =
         (model, Cmd.none)
 
 
+
 -- UPDATE
 
 
@@ -119,7 +121,9 @@ updatePad mouseX model =
 updateBall : Time -> Model -> Model
 updateBall delta model =
     if model.launched then
-        moveBall model
+        model
+            |> moveBall
+            |> collideBall
     else
         followPadWithBall model
 
@@ -151,6 +155,44 @@ moveBall model =
         | ballX = model.ballX + model.ballSpeed.x
         , ballY = model.ballY + model.ballSpeed.y
     }
+
+
+collideBall : Model -> Model
+collideBall =
+    collideBallWithWalls >> collideBallWithPad
+
+
+collideBallWithWalls : Model -> Model
+collideBallWithWalls model =
+    let
+        x = model.ballX
+        y = model.ballY
+        r = ballAttributes.radius
+        dx = model.ballSpeed.x
+        dy = model.ballSpeed.y
+        dx' = if (x - r) < 0 || (x + r) > gameAttributes.width then -dx else dx
+        dy' = if (y - r) < 0 then -dy else dy
+        ballSpeed = { x = dx', y = dy' }
+    in
+        { model | ballSpeed = ballSpeed }
+
+
+collideBallWithPad : Model -> Model
+collideBallWithPad model =
+    let
+        x = model.ballX
+        y = model.ballY
+        r = ballAttributes.radius
+        dx = model.ballSpeed.x
+        dy = model.ballSpeed.y
+        dy' =
+            if y + r > padAttributes.top && x >= model.padX && x <= model.padX + padAttributes.width then
+                -dy
+            else
+                dy
+        ballSpeed = { x = dx, y = dy' }
+    in
+        { model | ballSpeed = ballSpeed }
 
 
 
