@@ -4,7 +4,8 @@ import Html.Attributes exposing (style)
 import Svg exposing (Svg, svg, rect, circle)
 import Svg.Attributes exposing (width, height, x, y, cx, cy, r)
 import Mouse exposing (Position)
-import String
+import AnimationFrame
+import Time exposing (Time)
 
 
 main =
@@ -24,7 +25,15 @@ type alias Model =
     { padX : Int
     , ballX : Int
     , ballY : Int
+    , ballSpeed : Speed
     , launched : Bool
+    }
+
+
+-- TODO: floats?
+type alias Speed =
+    { x : Int
+    , y : Int
     }
 
 
@@ -45,6 +54,13 @@ ballAttributes =
     { radius = 10 }
 
 
+launchSpeed : Speed
+launchSpeed =
+    { x = 1
+    , y = -2
+    }
+
+
 init : (Model, Cmd Msg)
 init =
     let
@@ -54,6 +70,7 @@ init =
             { padX = midX - halfPadWdith
             , ballX = midX
             , ballY = padAttributes.top - ballAttributes.radius
+            , ballSpeed = {x = 0, y = 0}
             , launched = False
             }
     in
@@ -66,31 +83,75 @@ init =
 type Msg
     = PadMove Position
     | Launch Position
+    | TimeLapse Time
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update message model =
     case message of
         PadMove position ->
-            let
-                halfPadWidth = round (toFloat padAttributes.width / 2)
-                x = position.x - halfPadWidth
-                bound = gameAttributes.width - padAttributes.width
-                boundedX = clamp 0 bound x
-                ballX =
-                    if model.launched then
-                        model.ballX
-                    else
-                        boundedX + halfPadWidth
-            in
-                ({ model
-                    | padX = boundedX
-                    , ballX = ballX
-                 }
-                , Cmd.none)
+            (model
+                |> updatePad position.x
+                |> updateBall 0
+            , Cmd.none)
 
-        Launch position ->
-            ({ model | launched = True }, Cmd.none)
+        Launch _ ->
+            (launchBall model, Cmd.none)
+
+        TimeLapse delta ->
+            (model
+                |> updateBall delta
+            , Cmd.none)
+
+
+
+updatePad : Int -> Model -> Model
+updatePad mouseX model =
+    let
+        halfPadWidth = round (toFloat padAttributes.width / 2)
+        x = mouseX - halfPadWidth
+        bound = gameAttributes.width - padAttributes.width
+        boundedX = clamp 0 bound x
+    in
+        { model | padX = boundedX }
+
+
+updateBall : Time -> Model -> Model
+updateBall delta model =
+    if model.launched then
+        moveBall model
+    else
+        followPadWithBall model
+
+
+followPadWithBall : Model -> Model
+followPadWithBall model =
+    let
+        halfPadWidth = round (toFloat padAttributes.width / 2)
+        ballX = model.padX + halfPadWidth
+    in
+        { model |
+            ballX = ballX }
+
+
+launchBall : Model -> Model
+launchBall model =
+    if model.launched then
+        model
+    else
+        { model
+            | launched = True
+            , ballSpeed = launchSpeed
+        }
+
+
+moveBall : Model -> Model
+moveBall model =
+    { model
+        | ballX = model.ballX + model.ballSpeed.x
+        , ballY = model.ballY + model.ballSpeed.y
+    }
+
 
 
 -- VIEW
@@ -155,5 +216,9 @@ ball x y =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch [ Mouse.moves PadMove, Mouse.ups Launch ]
+    Sub.batch
+        [ Mouse.moves PadMove
+        , Mouse.ups Launch
+        , AnimationFrame.diffs TimeLapse
+        ]
 
