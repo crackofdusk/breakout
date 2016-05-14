@@ -24,6 +24,7 @@ type alias Model =
     { padX : Int
     , ballX : Int
     , ballY : Int
+    , launched : Bool
     }
 
 
@@ -53,6 +54,7 @@ init =
             { padX = midX - halfPadWdith
             , ballX = midX
             , ballY = padAttributes.top - ballAttributes.radius
+            , launched = False
             }
     in
         (model, Cmd.none)
@@ -63,6 +65,7 @@ init =
 
 type Msg
     = PadMove Position
+    | Launch Position
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -70,13 +73,24 @@ update message model =
     case message of
         PadMove position ->
             let
-                x = position.x - round (toFloat padAttributes.width / 2)
+                halfPadWidth = round (toFloat padAttributes.width / 2)
+                x = position.x - halfPadWidth
                 bound = gameAttributes.width - padAttributes.width
                 boundedX = clamp 0 bound x
+                ballX =
+                    if model.launched then
+                        model.ballX
+                    else
+                        boundedX + halfPadWidth
             in
-                ({ model | padX = boundedX }
+                ({ model
+                    | padX = boundedX
+                    , ballX = ballX
+                 }
                 , Cmd.none)
 
+        Launch position ->
+            ({ model | launched = True }, Cmd.none)
 
 
 -- VIEW
@@ -141,5 +155,5 @@ ball x y =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Mouse.moves PadMove
+    Sub.batch [ Mouse.moves PadMove, Mouse.ups Launch ]
 
