@@ -2,7 +2,7 @@ import Html.App as App
 import Html exposing (Html, div)
 import Html.Attributes exposing (style)
 import Svg exposing (Svg, svg, rect, circle)
-import Svg.Attributes exposing (width, height, x, y, cx, cy, r)
+import Svg.Attributes exposing (width, height, x, y, rx, cx, cy, r, stroke, strokeWidth, fill)
 import Mouse
 import AnimationFrame
 import Time exposing (Time)
@@ -27,6 +27,7 @@ type alias Model =
     , ballPosition : Position
     , ballVelocity : Velocity
     , launched : Bool
+    , bricks: List Brick
     }
 
 
@@ -38,6 +39,13 @@ type alias Velocity =
     Vec2 Int
 
 
+type alias Brick =
+    { position : Position
+    , width : Int
+    , height : Int
+    }
+
+
 gameAttributes =
     { width = 800
     , height = 600
@@ -46,13 +54,19 @@ gameAttributes =
 
 padAttributes =
     { width = 80
-    , height = 20
+    , height = 15
     , top = 500
     }
 
 
 ballAttributes =
     { radius = 10 }
+
+
+brickAttributes =
+    { width = 60
+    , height = 25
+    }
 
 
 launchVelocity : Velocity
@@ -76,11 +90,36 @@ init =
             , ballPosition = ballPosition
             , ballVelocity = {x = 0, y = 0}
             , launched = False
+            , bricks = initBricks
             }
     in
         (model, Cmd.none)
 
 
+initBricks : List Brick
+initBricks =
+    let
+        initial =
+            List.repeat 50
+                { position = { x = 0, y = 0 }
+                , width = brickAttributes.width
+                , height = brickAttributes.height
+                }
+        positioned = List.indexedMap assignBrickPosition initial
+    in
+        positioned
+
+
+assignBrickPosition index b =
+    let
+        xOffset = 100
+        yOffset = 80
+        padding = 10
+        lineLength = 10
+        x = (rem index lineLength) * (b.width) + xOffset
+        y = (index // lineLength) * (b.height + padding) + yOffset
+    in
+        { b | position = { x = x , y = y }}
 
 -- UPDATE
 
@@ -207,21 +246,25 @@ collideBallWithPad model =
 
 view : Model -> Html Msg
 view model =
-    div
-        [ style
-            [ "width" => px gameAttributes.width
-            , "height" => px gameAttributes.height
-            , "background-color" => "#efe"
+    let
+        nodes =
+            pad model.padX ::
+            ball model.ballPosition.x model.ballPosition.y ::
+            List.map brick model.bricks
+    in
+        div
+            [ style
+                [ "width" => px gameAttributes.width
+                , "height" => px gameAttributes.height
+                , "background-color" => "#efe"
+                ]
             ]
-        ]
-        [ svg
-            [ width (toString gameAttributes.width)
-            , height (toString gameAttributes.height)
+            [ svg
+                [ width (toString gameAttributes.width)
+                , height (toString gameAttributes.height)
+                ]
+                nodes
             ]
-            [ pad model.padX
-            , ball model.ballPosition.x model.ballPosition.y
-            ]
-        ]
 
 
 (=>) = (,)
@@ -232,20 +275,25 @@ px pixels =
     toString pixels ++ "px"
 
 
-block : Int -> Int -> Int -> Int -> Svg Msg
-block x' y' width' height' =
+block : Int -> Int -> Int -> Int -> List (Svg.Attribute Msg) -> Svg Msg
+block x' y' width' height' extraAttributes =
     rect
-        [ x (toString x')
-        , y (toString y')
-        , width (toString width')
-        , height (toString height')
-        ]
+        (List.append
+            [ x (toString x')
+            , y (toString y')
+            , width (toString width')
+            , height (toString height')
+            ]
+            extraAttributes)
         []
 
 
 pad : Int -> Svg Msg
 pad x =
     block x padAttributes.top padAttributes.width padAttributes.height
+        [ fill "#632F53"
+        , rx "3"
+        ]
 
 
 ball : Int -> Int -> Svg Msg
@@ -254,8 +302,22 @@ ball x y =
         [ cx (toString x)
         , cy (toString y)
         , r (toString ballAttributes.radius)
+        , fill "#632F53"
         ]
         []
+
+
+brick : Brick -> Svg Msg
+brick b =
+    let
+        styles =
+            [ stroke "#5EBCCF"
+            , strokeWidth "3"
+            , fill "#69D2E7"
+            , rx "2"
+            ]
+    in
+        block b.position.x b.position.y b.width b.height styles
 
 
 
