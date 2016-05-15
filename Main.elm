@@ -3,9 +3,10 @@ import Html exposing (Html, div)
 import Html.Attributes exposing (style)
 import Svg exposing (Svg, svg, rect, circle)
 import Svg.Attributes exposing (width, height, x, y, cx, cy, r)
-import Mouse exposing (Position)
+import Mouse
 import AnimationFrame
 import Time exposing (Time)
+import Vec2 exposing (Vec2)
 
 
 main =
@@ -23,19 +24,18 @@ main =
 
 type alias Model =
     { padX : Int
-    , ballX : Int
-    , ballY : Int
-    , ballSpeed : Speed
+    , ballPosition : Position
+    , ballVelocity : Velocity
     , launched : Bool
     }
 
 
--- TODO: floats?
--- TODO: use Vec2
-type alias Speed =
-    { x : Int
-    , y : Int
-    }
+type alias Position =
+    Vec2 Int
+
+
+type alias Velocity =
+    Vec2 Int
 
 
 gameAttributes =
@@ -55,8 +55,8 @@ ballAttributes =
     { radius = 10 }
 
 
-launchSpeed : Speed
-launchSpeed =
+launchVelocity : Velocity
+launchVelocity =
     { x = 1
     , y = -2
     }
@@ -67,11 +67,14 @@ init =
     let
         midX = round (toFloat gameAttributes.width / 2)
         halfPadWdith = round (toFloat padAttributes.width / 2)
+        ballPosition =
+            { x = midX
+            , y = padAttributes.top - ballAttributes.radius
+            }
         model =
             { padX = midX - halfPadWdith
-            , ballX = midX
-            , ballY = padAttributes.top - ballAttributes.radius
-            , ballSpeed = {x = 0, y = 0}
+            , ballPosition = ballPosition
+            , ballVelocity = {x = 0, y = 0}
             , launched = False
             }
     in
@@ -132,10 +135,13 @@ followPadWithBall : Model -> Model
 followPadWithBall model =
     let
         halfPadWidth = round (toFloat padAttributes.width / 2)
-        ballX = model.padX + halfPadWidth
+        ballPosition =
+            { x = model.padX + halfPadWidth
+            , y = model.ballPosition.y
+            }
     in
         { model |
-            ballX = ballX }
+            ballPosition = ballPosition }
 
 
 launchBall : Model -> Model
@@ -145,7 +151,7 @@ launchBall model =
     else
         { model
             | launched = True
-            , ballSpeed = launchSpeed
+            , ballVelocity = launchVelocity
         }
 
 
@@ -153,8 +159,7 @@ moveBall : Time -> Model -> Model
 moveBall delta model =
     if delta > 0 then
         { model
-            | ballX = model.ballX + model.ballSpeed.x
-            , ballY = model.ballY + model.ballSpeed.y
+            | ballPosition = Vec2.add model.ballPosition model.ballVelocity
         }
     else
         model
@@ -168,34 +173,32 @@ collideBall =
 collideBallWithWalls : Model -> Model
 collideBallWithWalls model =
     let
-        x = model.ballX
-        y = model.ballY
+        {x, y} = model.ballPosition
         r = ballAttributes.radius
-        dx = model.ballSpeed.x
-        dy = model.ballSpeed.y
+        dx = model.ballVelocity.x
+        dy = model.ballVelocity.y
         dx' = if (x - r) < 0 || (x + r) > gameAttributes.width then -dx else dx
         dy' = if (y - r) < 0 then -dy else dy
-        ballSpeed = { x = dx', y = dy' }
+        ballVelocity = { x = dx', y = dy' }
     in
-        { model | ballSpeed = ballSpeed }
+        { model | ballVelocity = ballVelocity }
 
 
 collideBallWithPad : Model -> Model
 collideBallWithPad model =
     let
-        x = model.ballX
-        y = model.ballY
+        {x, y} = model.ballPosition
         r = ballAttributes.radius
-        dx = model.ballSpeed.x
-        dy = model.ballSpeed.y
+        dx = model.ballVelocity.x
+        dy = model.ballVelocity.y
         dy' =
             if y + r > padAttributes.top && x >= model.padX && x <= model.padX + padAttributes.width then
                 -dy
             else
                 dy
-        ballSpeed = { x = dx, y = dy' }
+        ballVelocity = { x = dx, y = dy' }
     in
-        { model | ballSpeed = ballSpeed }
+        { model | ballVelocity = ballVelocity }
 
 
 
@@ -216,7 +219,7 @@ view model =
             , height (toString gameAttributes.height)
             ]
             [ pad model.padX
-            , ball model.ballX model.ballY
+            , ball model.ballPosition.x model.ballPosition.y
             ]
         ]
 
