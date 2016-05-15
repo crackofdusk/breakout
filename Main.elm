@@ -122,7 +122,7 @@ updateBall : Time -> Model -> Model
 updateBall delta model =
     if model.launched then
         model
-            |> moveBall
+            |> moveBall delta
             |> collideBall
     else
         followPadWithBall model
@@ -149,12 +149,15 @@ launchBall model =
         }
 
 
-moveBall : Model -> Model
-moveBall model =
-    { model
-        | ballX = model.ballX + model.ballSpeed.x
-        , ballY = model.ballY + model.ballSpeed.y
-    }
+moveBall : Time -> Model -> Model
+moveBall delta model =
+    if delta > 0 then
+        { model
+            | ballX = model.ballX + model.ballSpeed.x
+            , ballY = model.ballY + model.ballSpeed.y
+        }
+    else
+        model
 
 
 collideBall : Model -> Model
