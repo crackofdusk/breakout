@@ -7,6 +7,7 @@ import Mouse
 import AnimationFrame
 import Time exposing (Time)
 import Vec2 exposing (Vec2)
+import Collision exposing (BoundingBox, Direction(..))
 
 
 main =
@@ -206,38 +207,135 @@ moveBall delta model =
 
 collideBall : Model -> Model
 collideBall =
-    collideBallWithWalls >> collideBallWithPad
+    collideBallWithWalls >> collideBallWithPad >> collideBallWithBricks
 
 
 collideBallWithWalls : Model -> Model
 collideBallWithWalls model =
     let
-        {x, y} = model.ballPosition
-        r = ballAttributes.radius
-        dx = model.ballVelocity.x
-        dy = model.ballVelocity.y
-        dx' = if (x - r) < 0 || (x + r) > gameAttributes.width then -dx else dx
-        dy' = if (y - r) < 0 then -dy else dy
-        ballVelocity = { x = dx', y = dy' }
+        ball = ballToCircle model
+        walls = wallBoundingBoxes
+        collide = \wall model' -> collideBallWithBox ball wall model'
     in
-        { model | ballVelocity = ballVelocity }
+        List.foldl collide model walls
 
 
 collideBallWithPad : Model -> Model
 collideBallWithPad model =
     let
-        {x, y} = model.ballPosition
-        r = ballAttributes.radius
+        ball = ballToCircle model
+        box = padToBoundingBox model
+    in
+        collideBallWithBox ball box model
+
+
+collideBallWithBricks : Model -> Model
+collideBallWithBricks model =
+    let
+        ball = ballToCircle model
+        collision = \brick -> Collision.circleVsAABB ball (brickToBoundingBox brick)
+        isColliding = \brick -> .isColliding (collision brick)
+        candidates = List.filter isColliding model.bricks
+    in
+        case candidates of
+            brick :: rest ->
+                collideBallWithBox ball (brickToBoundingBox brick) model
+
+            _ ->
+                model
+
+
+collideBallWithBox : Collision.Circle -> BoundingBox -> Model -> Model
+collideBallWithBox ball box model =
+    let
+        collision = Collision.circleVsAABB ball box
+    in
+        if collision.isColliding then
+            let
+                rebound = Collision.reboundDirection collision.penetration
+                correctedVelocity = reboundVelocity rebound model
+                correctedPosition = Vec2.minus model.ballPosition collision.penetration
+            in
+                { model
+                    | ballPosition = correctedPosition
+                    , ballVelocity = correctedVelocity
+                }
+        else
+            model
+
+
+reboundVelocity : Direction -> Model -> Velocity
+reboundVelocity direction model =
+    let
         dx = model.ballVelocity.x
         dy = model.ballVelocity.y
-        dy' =
-            if y + r > padAttributes.top && x >= model.padX && x <= model.padX + padAttributes.width then
-                -dy
-            else
-                dy
-        ballVelocity = { x = dx, y = dy' }
     in
-        { model | ballVelocity = ballVelocity }
+        case direction of
+            Up ->
+                { x = dx, y = -dy }
+
+            Down ->
+                { x = dx, y = -dy }
+
+            Left ->
+                { x = -dx, y = dy }
+
+            Right ->
+                { x = -dx, y = dy }
+
+
+padToBoundingBox : Model -> BoundingBox
+padToBoundingBox model =
+    { topLeft =
+        { x = model.padX
+        , y = padAttributes.top
+        }
+    , bottomRight =
+        { x = model.padX + padAttributes.width
+        , y = padAttributes.top + padAttributes.height
+        }
+    }
+
+
+brickToBoundingBox : Brick -> BoundingBox
+brickToBoundingBox brick =
+    let
+        topLeft = brick.position
+        bottomRight =
+            Vec2.add brick.position { x = brick.width, y = brick.height }
+    in
+        { topLeft = topLeft
+        , bottomRight = bottomRight
+        }
+
+
+ballToCircle : Model -> Collision.Circle
+ballToCircle model =
+    { center = model.ballPosition
+    , radius = ballAttributes.radius
+    }
+
+
+wallBoundingBoxes : List (BoundingBox)
+wallBoundingBoxes =
+    let
+        wallWidth = 50
+        worldWidth = gameAttributes.width
+        worldHeight = gameAttributes.height
+    in
+        -- left wall
+        [ { topLeft = { x = -wallWidth, y = -wallWidth }
+          , bottomRight = { x = 0, y = worldHeight }
+          }
+          -- top wall
+        , { topLeft = { x = 0, y = -wallWidth }
+          , bottomRight = { x = worldWidth, y = 0 }
+          }
+          -- right wall
+        , { topLeft = { x = worldWidth , y = -wallWidth }
+          , bottomRight = { x = worldWidth + wallWidth, y = worldHeight }
+          }
+        ]
 
 
 
