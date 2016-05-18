@@ -235,13 +235,17 @@ collideBallWithBricks model =
         ball = ballToCircle model
         collision = \brick -> Collision.circleVsAABB ball (brickToBoundingBox brick)
         isColliding = \brick -> .isColliding (collision brick)
-        candidates = List.filter isColliding model.bricks
+        (candidates, notColliding) = List.partition isColliding model.bricks
     in
         case candidates of
             brick :: rest ->
-                collideBallWithBox ball (brickToBoundingBox brick) model
+                let
+                    model' = collideBallWithBox ball (brickToBoundingBox brick) model
+                in
+                    -- destroying more than one brick produces a buggy rebound
+                    { model' | bricks = List.append rest notColliding }
 
-            _ ->
+            [] ->
                 model
 
 
