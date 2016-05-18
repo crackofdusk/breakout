@@ -79,6 +79,11 @@ launchVelocity =
 
 init : (Model, Cmd Msg)
 init =
+    (initModel, Cmd.none)
+
+
+initModel : Model
+initModel =
     let
         midX = round (toFloat gameAttributes.width / 2)
         halfPadWdith = round (toFloat padAttributes.width / 2)
@@ -86,15 +91,13 @@ init =
             { x = midX
             , y = padAttributes.top - ballAttributes.radius
             }
-        model =
-            { padX = midX - halfPadWdith
-            , ballPosition = ballPosition
-            , ballVelocity = {x = 0, y = 0}
-            , launched = False
-            , bricks = initBricks
-            }
     in
-        (model, Cmd.none)
+        { padX = midX - halfPadWdith
+        , ballPosition = ballPosition
+        , ballVelocity = {x = 0, y = 0}
+        , launched = False
+        , bricks = initBricks
+        }
 
 
 initBricks : List Brick
@@ -167,6 +170,7 @@ updateBall delta model =
         model
             |> moveBall delta
             |> collideBall
+            |> loseBall
     else
         followPadWithBall model
 
@@ -340,6 +344,15 @@ wallBoundingBoxes =
           , bottomRight = { x = worldWidth + wallWidth, y = worldHeight }
           }
         ]
+
+
+loseBall : Model -> Model
+loseBall model =
+    if model.ballPosition.y > padAttributes.top + padAttributes.height then
+        initModel
+
+    else
+        model
 
 
 
