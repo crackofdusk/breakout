@@ -12,7 +12,7 @@ import Vec2 exposing (Vec2)
 
 type alias Collision =
     { isColliding : Bool
-    , penetration : Vec2 Float
+    , penetration : Vec2
     --, normal : Vec2 Int
     }
 
@@ -25,14 +25,14 @@ type Direction
 
 
 type alias Circle =
-    { center : Vec2 Float
+    { center : Vec2
     , radius : Float
     }
 
 
 type alias BoundingBox =
-    { topLeft : Vec2 Float
-    , bottomRight : Vec2 Float
+    { topLeft : Vec2
+    , bottomRight : Vec2
     }
 
 
@@ -58,7 +58,7 @@ circleVsAABB circle rectangle =
         }
 
 
-boxCenter : BoundingBox -> Vec2 Float
+boxCenter : BoundingBox -> Vec2
 boxCenter box =
     let
         x1 = box.topLeft.x
@@ -71,7 +71,7 @@ boxCenter box =
         }
 
 
-boxHalfExtents : BoundingBox -> Vec2 Float
+boxHalfExtents : BoundingBox -> Vec2
 boxHalfExtents box =
     let
         x1 = box.topLeft.x
@@ -84,7 +84,7 @@ boxHalfExtents box =
         }
 
 
-reboundDirection : Vec2 Float -> Direction
+reboundDirection : Vec2 -> Direction
 reboundDirection penetration =
     let
         normalizedPenetration =  Vec2.normalize penetration

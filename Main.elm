@@ -33,11 +33,11 @@ type alias Model =
 
 
 type alias Position =
-    Vec2 Float
+    Vec2
 
 
 type alias Velocity =
-    Vec2 Float
+    Vec2
 
 
 type alias Brick =
