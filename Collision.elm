@@ -41,10 +41,10 @@ circleVsAABB circle rectangle =
     let
         center = boxCenter rectangle
         halfExtents = boxHalfExtents rectangle
-        difference = circle.center `Vec2.minus` center
+        difference = circle.center `Vec2.subtract` center
         clamped = Vec2.clamp (Vec2.scale -1 halfExtents) halfExtents difference
         closest = center `Vec2.add` clamped
-        distance = Vec2.minus closest circle.center
+        distance = Vec2.subtract closest circle.center
         isColliding =
             Vec2.length distance < circle.radius
         penetration =

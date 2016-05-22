@@ -1,7 +1,7 @@
 module Vec2 exposing
     ( Vec2
     , add
-    , minus
+    , subtract
     , scale
     , dot
     , length
@@ -22,8 +22,8 @@ add v1 v2 =
     }
 
 
-minus : Vec2 -> Vec2 -> Vec2
-minus v1 v2 =
+subtract : Vec2 -> Vec2 -> Vec2
+subtract v1 v2 =
     v1 `add` (scale -1 v2)
 
 

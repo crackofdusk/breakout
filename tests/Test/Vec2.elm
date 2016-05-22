@@ -25,14 +25,15 @@ propertyTests =
 claims : Claim
 claims =
     Check.suite "Properties"
-        [ addition_commutativity
-        , addition_associativity
-        , addition_identity
+        [ additionCommutativity
+        , additionAssociativity
+        , additionIdentity
+        , additionAndSubtractionAreOpposites
         ]
 
 
-addition_commutativity : Claim
-addition_commutativity =
+additionCommutativity : Claim
+additionCommutativity =
     claim "addition is commutative"
         `that`
             (\(x,y) -> Vec2.add x y)
@@ -42,8 +43,8 @@ addition_commutativity =
             tuple(vector2, vector2)
 
 
-addition_associativity : Claim
-addition_associativity =
+additionAssociativity : Claim
+additionAssociativity =
     claim "addition is associative"
         `true`
             (\(x,y,z) ->
@@ -54,8 +55,8 @@ addition_associativity =
             tuple3(vector2, vector2, vector2)
 
 
-addition_identity : Claim
-addition_identity =
+additionIdentity : Claim
+additionIdentity =
     claim "the zero vector2 is the identity element of vector2 addition"
         `that`
             (\x -> Vec2.add x { x = 0, y = 0 })
@@ -65,6 +66,19 @@ addition_identity =
             vector2
 
 
+additionAndSubtractionAreOpposites : Claim
+additionAndSubtractionAreOpposites =
+    claim "addition and subtraction are opposites"
+        `true`
+            (\(x, y) ->
+                assertEqualInDelta
+                    (Vec2.subtract (Vec2.add x y) y)
+                    x)
+        `for`
+            tuple (vector2, vector2)
+
+
+
 vector2 : Producer Vec2
 vector2 =
     Check.Producer.map (\(x,y) -> { x = x, y = y }) (tuple (float, float))
@@ -72,7 +86,7 @@ vector2 =
 
 assertEqualInDelta : Vec2 -> Vec2 -> Bool
 assertEqualInDelta v1 v2 =
-    let delta = 1E-8
+    let delta = 1E-7
     in
         abs (v1.x - v2.x) < delta
         && abs (v1.y - v2.y) < delta
@@ -86,4 +100,5 @@ exampleTests : Test
 exampleTests =
     suite "Examples"
         [ test "addition" <| assertEqual { x = 6, y = 6 } (Vec2.add { x = 2, y = -2 } { x = 4, y = 8 })
+        , test "subtraction" <| assertEqual {x = 0, y = 0} (Vec2.subtract { x = 42, y = 23 } { x = 42, y = 23 })
         ]

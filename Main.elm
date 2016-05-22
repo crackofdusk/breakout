@@ -262,7 +262,7 @@ collideBallWithBox ball box model =
             let
                 rebound = Collision.reboundDirection collision.penetration
                 correctedVelocity = reboundVelocity rebound model
-                correctedPosition = Vec2.minus model.ballPosition collision.penetration
+                correctedPosition = Vec2.subtract model.ballPosition collision.penetration
             in
                 { model
                     | ballPosition = correctedPosition
