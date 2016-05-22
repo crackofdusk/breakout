@@ -12,7 +12,7 @@ import Vec2 exposing (Vec2)
 
 type alias Collision =
     { isColliding : Bool
-    , penetration : Vec2 Int
+    , penetration : Vec2 Float
     --, normal : Vec2 Int
     }
 
@@ -25,14 +25,14 @@ type Direction
 
 
 type alias Circle =
-    { center : Vec2 Int
-    , radius : Int
+    { center : Vec2 Float
+    , radius : Float
     }
 
 
 type alias BoundingBox =
-    { topLeft : Vec2 Int
-    , bottomRight : Vec2 Int
+    { topLeft : Vec2 Float
+    , bottomRight : Vec2 Float
     }
 
 
@@ -46,7 +46,7 @@ circleVsAABB circle rectangle =
         closest = center `Vec2.add` clamped
         distance = Vec2.minus closest circle.center
         isColliding =
-            Vec2.length (Vec2.toFloat distance) < toFloat circle.radius
+            Vec2.length distance < circle.radius
         penetration =
             if isColliding then
                 distance
@@ -58,7 +58,7 @@ circleVsAABB circle rectangle =
         }
 
 
-boxCenter : BoundingBox -> Vec2 Int
+boxCenter : BoundingBox -> Vec2 Float
 boxCenter box =
     let
         x1 = box.topLeft.x
@@ -66,12 +66,12 @@ boxCenter box =
         y1 = box.topLeft.y
         y2 = box.bottomRight.y
     in
-        { x = x1 + round (toFloat (x2 - x1) / 2)
-        , y = y1 + round (toFloat (y2 - y1) / 2)
+        { x = x1 + (x2 - x1) / 2
+        , y = y1 + (y2 - y1) / 2
         }
 
 
-boxHalfExtents : BoundingBox -> Vec2 Int
+boxHalfExtents : BoundingBox -> Vec2 Float
 boxHalfExtents box =
     let
         x1 = box.topLeft.x
@@ -79,15 +79,15 @@ boxHalfExtents box =
         y1 = box.topLeft.y
         y2 = box.bottomRight.y
     in
-        { x = round (toFloat (x2 - x1) / 2)
-        , y = round (toFloat (y2 - y1) / 2)
+        { x = (x2 - x1) / 2
+        , y = (y2 - y1) / 2
         }
 
 
-reboundDirection : Vec2 Int -> Direction
+reboundDirection : Vec2 Float -> Direction
 reboundDirection penetration =
     let
-        normalizedPenetration =  Vec2.normalize (Vec2.toFloat penetration)
+        normalizedPenetration =  Vec2.normalize penetration
         dotProduct = Vec2.dot normalizedPenetration
         directions =
             [ (Up, dotProduct { x = 0, y = 1 })

@@ -33,11 +33,11 @@ type alias Model =
 
 
 type alias Position =
-    Vec2 Int
+    Vec2 Float
 
 
 type alias Velocity =
-    Vec2 Int
+    Vec2 Float
 
 
 type alias Brick =
@@ -88,8 +88,8 @@ initModel =
         midX = round (toFloat gameAttributes.width / 2)
         halfPadWdith = round (toFloat padAttributes.width / 2)
         ballPosition =
-            { x = midX
-            , y = padAttributes.top - ballAttributes.radius
+            { x = toFloat midX
+            , y = toFloat (padAttributes.top - ballAttributes.radius)
             }
     in
         { padX = midX - halfPadWdith
@@ -123,14 +123,14 @@ assignBrickPosition index b =
         x = (rem index lineLength) * (b.width) + xOffset
         y = (index // lineLength) * (b.height + padding) + yOffset
     in
-        { b | position = { x = x , y = y }}
+        { b | position = { x = toFloat x , y = toFloat y }}
 
 -- UPDATE
 
 
 type Msg
-    = PadMove Position
-    | Launch Position
+    = PadMove Mouse.Position
+    | Launch Mouse.Position
     | TimeLapse Time
 
 
@@ -180,7 +180,7 @@ followPadWithBall model =
     let
         halfPadWidth = round (toFloat padAttributes.width / 2)
         ballPosition =
-            { x = model.padX + halfPadWidth
+            { x = toFloat (model.padX + halfPadWidth)
             , y = model.ballPosition.y
             }
     in
@@ -295,12 +295,12 @@ reboundVelocity direction model =
 padToBoundingBox : Model -> BoundingBox
 padToBoundingBox model =
     { topLeft =
-        { x = model.padX
-        , y = padAttributes.top
+        { x = toFloat model.padX
+        , y = toFloat padAttributes.top
         }
     , bottomRight =
-        { x = model.padX + padAttributes.width
-        , y = padAttributes.top + padAttributes.height
+        { x = toFloat (model.padX + padAttributes.width)
+        , y = toFloat (padAttributes.top + padAttributes.height)
         }
     }
 
@@ -310,7 +310,7 @@ brickToBoundingBox brick =
     let
         topLeft = brick.position
         bottomRight =
-            Vec2.add brick.position { x = brick.width, y = brick.height }
+            Vec2.add brick.position { x = toFloat brick.width, y = toFloat brick.height }
     in
         { topLeft = topLeft
         , bottomRight = bottomRight
@@ -320,16 +320,16 @@ brickToBoundingBox brick =
 ballToCircle : Model -> Collision.Circle
 ballToCircle model =
     { center = model.ballPosition
-    , radius = ballAttributes.radius
+    , radius = toFloat ballAttributes.radius
     }
 
 
 wallBoundingBoxes : List (BoundingBox)
 wallBoundingBoxes =
     let
-        wallWidth = 50
-        worldWidth = gameAttributes.width
-        worldHeight = gameAttributes.height
+        wallWidth = 50.0
+        worldWidth = toFloat gameAttributes.width
+        worldHeight = toFloat gameAttributes.height
     in
         -- left wall
         [ { topLeft = { x = -wallWidth, y = -wallWidth }
@@ -348,7 +348,7 @@ wallBoundingBoxes =
 
 loseBall : Model -> Model
 loseBall model =
-    if model.ballPosition.y > padAttributes.top + padAttributes.height then
+    if model.ballPosition.y > toFloat (padAttributes.top + padAttributes.height) then
         initModel
 
     else
@@ -390,7 +390,7 @@ px pixels =
     toString pixels ++ "px"
 
 
-block : Int -> Int -> Int -> Int -> List (Svg.Attribute Msg) -> Svg Msg
+block : Float -> Float -> Int -> Int -> List (Svg.Attribute Msg) -> Svg Msg
 block x' y' width' height' extraAttributes =
     rect
         (List.append
@@ -405,13 +405,13 @@ block x' y' width' height' extraAttributes =
 
 pad : Int -> Svg Msg
 pad x =
-    block x padAttributes.top padAttributes.width padAttributes.height
+    block (toFloat x) (toFloat padAttributes.top) padAttributes.width padAttributes.height
         [ fill "#632F53"
         , rx "3"
         ]
 
 
-ball : Int -> Int -> Svg Msg
+ball : Float -> Float -> Svg Msg
 ball x y =
     circle
         [ cx (toString x)
